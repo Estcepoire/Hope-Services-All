@@ -76,6 +76,23 @@ src/
   (⚠️ efface les comptes créés dans Keycloak) :
   `docker compose stop keycloak && docker exec hope-db psql -U hope -d hope_services -c "DROP DATABASE keycloak" -c "CREATE DATABASE keycloak OWNER hope" && npm run db:up`
 
+## Connexion avec Google
+
+Google passe par Keycloak (« fournisseur d'identité ») : le site ne parle qu'à Keycloak.
+
+1. Sur https://console.cloud.google.com : créer un projet, puis **API et services → Écran de
+   consentement OAuth** (type « Externe », nom « HOPE Services »).
+2. **Identifiants → Créer des identifiants → ID client OAuth**, type « Application Web ».
+   URI de redirection autorisé : `http://localhost:8080/realms/hope/broker/google/endpoint`
+   (en production : `https://<domaine-keycloak>/realms/hope/broker/google/endpoint`).
+3. Copier l'ID client et le secret dans `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), puis :
+   `npm run keycloak:google`
+4. Mettre `AUTH_GOOGLE_ENABLED="true"` dans `.env` pour afficher le bouton « Continuer avec Google »,
+   et redémarrer `npm run dev`.
+
+Un compte Google reçoit le rôle `particulier`, comme une inscription classique. Si l'e-mail existe déjà
+dans Keycloak, Keycloak propose de relier les deux comptes.
+
 ## Estimation de la valeur
 
 `valeur = Σ (kg × prix/kg × coefficient qualité) − frais d'enlèvement`
