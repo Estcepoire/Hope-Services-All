@@ -1,8 +1,24 @@
-// Coordonnées de HOPE Services, affichées sur le site (contact, pied de page).
+// Coordonnées de HOPE Services : valeurs PAR DÉFAUT. Elles sont modifiables dans l'admin (Paramètres),
+// et lues sur le site via getCompany() (src/lib/data.ts).
 // Source : page Facebook publique de l'entreprise (facebook.com/hopeservices.sarlu), novembre 2026.
 // Un champ laissé à null n'est pas affiché, pour ne jamais publier d'information inventée.
 
-export const COMPANY = {
+export type Company = {
+  name: string;
+  legalForm: string;
+  slogan: string;
+  description: string;
+  city: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string;
+  facebook: string;
+  whatsapp: string | null;
+  openingHours: string | null;
+};
+
+export const COMPANY: Company = {
   name: "HOPE Services",
   legalForm: "SARLU",
   slogan: "Serving is our nature",
@@ -13,6 +29,6 @@ export const COMPANY = {
   email: "hopeservices.sarlu@gmail.com",
   website: "https://hopeservices.mg",
   facebook: "https://www.facebook.com/hopeservices.sarlu/",
-  whatsapp: null as string | null, // numéro international sans +, ex : "261346682973", si WhatsApp est utilisé
-  openingHours: null as string | null, // ex : "Lundi au samedi, 8h–17h"
+  whatsapp: null, // numéro international sans +, ex : "261346682973", si WhatsApp est utilisé
+  openingHours: null, // ex : "Lundi au samedi, 8h–17h"
 };

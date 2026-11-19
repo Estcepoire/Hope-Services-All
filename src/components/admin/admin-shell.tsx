@@ -6,9 +6,11 @@ import {
   ExternalLink,
   LogOut,
   Mail,
+  MapPin,
   Menu,
   Package,
   ReceiptText,
+  Settings,
   Tags,
   Truck,
   type LucideIcon,
@@ -37,9 +39,16 @@ const NAV: { section: string; items: { href: string; label: string; Icon: Lucide
     items: [
       { href: "/admin/produits", label: "Produits", Icon: Package },
       { href: "/admin/tarifs", label: "Tarifs de rachat", Icon: Tags },
+      { href: "/admin/points", label: "Points d'apport", Icon: MapPin },
     ],
   },
-  { section: "Terrain", items: [{ href: "/collecteur", label: "Espace collecteur", Icon: ClipboardList }] },
+  {
+    section: "Site",
+    items: [
+      { href: "/admin/parametres", label: "Paramètres", Icon: Settings },
+      { href: "/collecteur", label: "Espace collecteur", Icon: ClipboardList },
+    ],
+  },
 ];
 
 export function AdminShell({ userName, children }: { userName: string; children: React.ReactNode }) {

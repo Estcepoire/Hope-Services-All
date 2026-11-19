@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { COMPANY } from "@/lib/company";
+import { getCompany } from "@/lib/data";
 import { Recycle, Trash2, TriangleAlert } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -41,7 +44,10 @@ export default function AboutPage() {
         </h1>
         <p className="max-w-2xl text-lg text-black/70">
           {COMPANY.name} {COMPANY.legalForm} est une entreprise de gestion des déchets basée à Andoharanofotsy,
-          Antananarivo. {COMPANY.description}
+          Antananarivo.{" "}
+          <Suspense fallback={COMPANY.description}>
+            <CompanyDescription />
+          </Suspense>
         </p>
       </section>
 
@@ -120,4 +126,9 @@ export default function AboutPage() {
       </section>
     </div>
   );
+}
+
+async function CompanyDescription() {
+  await connection();
+  return (await getCompany()).description;
 }

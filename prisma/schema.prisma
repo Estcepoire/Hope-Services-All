@@ -297,3 +297,20 @@ model ContactMessage {
 
   @@index([handled, createdAt])
 }
+
+// ─── Paramètres du site (une seule ligne, id = "default") ───────────────────
+// Coordonnées et textes modifiables dans l'admin ; un champ vide reprend la valeur par défaut
+// de src/lib/company.ts.
+
+model SiteSettings {
+  id           String   @id @default("default")
+  description  String?
+  slogan       String?
+  address      String?
+  phone        String?
+  email        String?
+  whatsapp     String?
+  facebook     String?
+  openingHours String?
+  updatedAt    DateTime @updatedAt
+}

@@ -1,7 +1,10 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { Suspense } from "react";
 import { Card, PageTitle } from "@/components/admin/ui";
+import type { Prisma } from "@/generated/prisma/client";
 import type { OrderStatus } from "@/generated/prisma/enums";
+import { dateRange, intParam, oneOf, pageParams, str } from "@/lib/admin/list-params";
+import { FieldFilter, ListToolbar, Pagination, SelectFilter } from "@/components/admin/list-toolbar";
 import { formatAriary } from "@/lib/format";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS, PAYOUT_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
@@ -57,27 +60,86 @@ async function changeStatus(formData: FormData) {
   revalidatePath("/admin/commandes");
 }
 
-export default function OrdersAdminPage() {
+export default function OrdersAdminPage(props: PageProps<"/admin/commandes">) {
   return (
     <>
       <PageTitle title="Commandes" crumbs={["Commandes"]} />
       <Card>
         <Suspense fallback={<p>Chargement…</p>}>
-        <Orders />
-      </Suspense>
+          <Orders {...props} />
+        </Suspense>
       </Card>
     </>
   );
 }
 
-async function Orders() {
+const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
+const orderInclude = { items: { include: { product: { select: { name: true } } } }, payments: true } satisfies Prisma.OrderInclude;
+type OrderRow = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
+const METHODS = ["MVOLA", "ORANGE_MONEY", "AIRTEL_MONEY", "ESPECES"] as const;
+
+async function Orders({ searchParams }: PageProps<"/admin/commandes">) {
   await requireRole(["admin"], "/admin/commandes");
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    include: { items: { include: { product: { select: { name: true } } } }, payments: true },
-  });
-  if (orders.length === 0) return <p className="text-black/60">Aucune commande pour le moment.</p>;
+  const sp = await searchParams;
+  const q = str(sp, "q");
+  const statut = oneOf(sp, "statut", STATUSES);
+  const paiement = oneOf(sp, "paiement", METHODS);
+  const min = intParam(sp, "min");
+  const max = intParam(sp, "max");
+  const { page, skip, take } = pageParams(sp);
+
+  const where: Prisma.OrderWhereInput = {
+    ...(statut && { status: statut }),
+    ...(paiement && { payments: { some: { method: paiement } } }),
+    ...(dateRange(sp) && { createdAt: dateRange(sp) }),
+    ...((min !== undefined || max !== undefined) && { total: { ...(min !== undefined && { gte: min }), ...(max !== undefined && { lte: max }) } }),
+    ...(q && {
+      OR: [
+        { customerName: { contains: q, mode: "insensitive" } },
+        { customerPhone: { contains: q.replace(/\s/g, "") } },
+        { deliveryAddress: { contains: q, mode: "insensitive" } },
+        { id: { endsWith: q.toLowerCase() } },
+        { items: { some: { product: { name: { contains: q, mode: "insensitive" } } } } },
+      ],
+    }),
+  };
+
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+      include: orderInclude,
+    }),
+  ]);
+
+  return (
+    <>
+      <ListToolbar
+        basePath="/admin/commandes"
+        sp={sp}
+        placeholder="Client, téléphone, n° de commande, produit…"
+        filters={<SelectFilter name="statut" label="Statut" value={statut} options={STATUSES.map((s) => ({ value: s, label: ORDER_STATUS_LABELS[s] }))} />}
+        advanced={
+          <>
+            <SelectFilter name="paiement" label="Paiement" value={paiement} options={METHODS.map((m) => ({ value: m, label: PAYOUT_LABELS[m] }))} />
+            <FieldFilter name="du" label="Du" type="date" value={str(sp, "du")} />
+            <FieldFilter name="au" label="Au" type="date" value={str(sp, "au")} />
+            <FieldFilter name="min" label="Montant min (Ar)" type="number" value={str(sp, "min")} />
+            <FieldFilter name="max" label="Montant max (Ar)" type="number" value={str(sp, "max")} />
+          </>
+        }
+      />
+      <OrderList orders={orders} />
+      <Pagination basePath="/admin/commandes" sp={sp} page={page} total={total} />
+    </>
+  );
+}
+
+function OrderList({ orders }: { orders: OrderRow[] }) {
+  if (orders.length === 0) return <p className="py-6 text-center text-[#8a978c]">Aucune commande ne correspond.</p>;
 
   return (
     <ul className="flex max-w-4xl flex-col gap-3">

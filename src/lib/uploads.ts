@@ -71,3 +71,45 @@ export async function readDeclarationPhoto(declarationId: string, name: string):
     return null;
   }
 }
+
+// ─── Images des produits (publiques : affichées dans la boutique) ───────────────
+
+export const MAX_PRODUCT_IMAGES = 6;
+
+/** Enregistre une image produit et renvoie son URL publique. */
+export async function saveProductImage(file: File) {
+  const name = `${randomUUID()}.${PHOTO_TYPES[file.type]}`;
+  if (USE_BLOB) {
+    await put(`produits/${name}`, file, { access: "private", contentType: file.type, addRandomSuffix: false });
+  } else {
+    const dir = path.join(ROOT, "produits");
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
+  }
+  return `/api/uploads/produits/${name}`;
+}
+
+/** Supprime les fichiers d'images produit retirées (URL /api/uploads/produits/…). */
+export async function deleteProductImages(urls: string[]) {
+  const names = urls.map((u) => u.split("/").pop()!).filter((n) => /^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(n));
+  if (!names.length) return;
+  if (USE_BLOB) {
+    await del(names.map((n) => `produits/${n}`));
+  } else {
+    await Promise.all(names.map((n) => rm(path.join(ROOT, "produits", n), { force: true })));
+  }
+}
+
+export async function readProductImage(name: string): Promise<{ body: BodyInit; type: string } | null> {
+  if (!/^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(name)) return null;
+  const type = Object.keys(PHOTO_TYPES).find((t) => PHOTO_TYPES[t] === name.split(".").pop())!;
+  try {
+    if (USE_BLOB) {
+      const result = await get(`produits/${name}`, { access: "private" });
+      return result?.stream ? { body: result.stream, type } : null;
+    }
+    return { body: new Uint8Array(await readFile(path.join(ROOT, "produits", name))), type };
+  } catch {
+    return null;
+  }
+}

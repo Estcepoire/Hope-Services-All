@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -49,8 +50,11 @@ async function ProductDetails({ params }: Pick<PageProps<"/boutique/[slug]">, "p
 
         <div className="grid gap-10 md:grid-cols-2">
           <div className={`relative grid aspect-square place-items-center overflow-hidden rounded-[2rem] ${style.bg}`}>
-            {/* TODO : galerie product.images avec next/image */}
-            <style.Icon aria-hidden className="h-32 w-32 text-black/20" strokeWidth={1} />
+            {product.images[0] ? (
+              <Image src={product.images[0]} alt={product.name} fill priority sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+            ) : (
+              <style.Icon aria-hidden className="h-32 w-32 text-black/20" strokeWidth={1} />
+            )}
             {product.recycledKg ? (
               <span className="absolute left-4 top-4 rounded-full bg-highlight px-3 py-1 text-sm font-semibold">
                 {product.recycledKg} kg recyclés

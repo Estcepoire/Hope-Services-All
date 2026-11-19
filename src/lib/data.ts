@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { DeclarationStatus } from "@/generated/prisma/enums";
+import { COMPANY, type Company } from "@/lib/company";
 import { prisma } from "@/lib/prisma";
 
 // Lectures publiques mises en cache (Cache Components).
@@ -66,4 +67,24 @@ export async function getImpactStats() {
     prisma.collectionPoint.count({ where: { active: true } }),
   ]);
   return { kgRecycled: weighed._sum?.actualKg ?? 0, collections, points };
+}
+
+/** Coordonnées de l'entreprise : paramètres de l'admin, sinon valeurs par défaut (src/lib/company.ts). */
+export async function getCompany(): Promise<Company> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("settings");
+  const s = await prisma.siteSettings.findUnique({ where: { id: "default" } });
+  const pick = <K extends keyof Company>(key: K, value: string | null | undefined) => (value?.trim() ? value.trim() : COMPANY[key]);
+  return {
+    ...COMPANY,
+    description: pick("description", s?.description) as string,
+    slogan: pick("slogan", s?.slogan) as string,
+    address: pick("address", s?.address),
+    phone: pick("phone", s?.phone),
+    email: pick("email", s?.email),
+    whatsapp: pick("whatsapp", s?.whatsapp),
+    facebook: pick("facebook", s?.facebook) as string,
+    openingHours: pick("openingHours", s?.openingHours),
+  };
 }
