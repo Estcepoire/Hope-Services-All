@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: hope-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hope
+      POSTGRES_PASSWORD: hope
+      POSTGRES_DB: hope_services
+    ports:
+      - "5432:5432"
+    volumes:
+      - hope-db-data:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hope"]
+      interval: 5s
+      retries: 10
+
+  # Authentification (OpenID Connect). Console : http://localhost:8080/admin
+  # Données dans la base "keycloak" du conteneur db ; realm "hope" importé au premier démarrage.
+  # Identifiants de DÉVELOPPEMENT uniquement : en production, mode `start`, HTTPS et vrais secrets.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    container_name: hope-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: hope
+      KC_DB_PASSWORD: hope
+      KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+
+volumes:
+  hope-db-data:

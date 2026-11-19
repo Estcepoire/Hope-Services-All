@@ -1,0 +1,258 @@
+// Schéma de données HOPE Services
+// Montants en Ariary (MGA), stockés en entiers : l'Ariary n'a pas de centimes en usage courant.
+// Coordonnées GPS en latitude/longitude (WGS84). Les calculs de distance passent par
+// PostGIS (extension activée dans la première migration), voir src/lib/geo.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Utilisateurs ────────────────────────────────────────────────────────────
+
+enum Role {
+  PARTICULIER
+  ENTREPRISE
+  COLLECTEUR
+  ADMIN
+}
+
+model User {
+  id            String   @id @default(cuid())
+  keycloakId    String?  @unique // `sub` du jeton Keycloak ; null pour un compte créé sans connexion
+  role          Role     @default(PARTICULIER) // recopié depuis les rôles Keycloak à chaque connexion
+  name          String
+  email         String?  @unique
+  phone         String?  @unique // numéro mobile money (034/032/033…)
+  companyName   String? // pour les entreprises
+  nif           String? // NIF / STAT des entreprises
+  creditBalance Int      @default(0) // crédits boutique gagnés en apportant des déchets (MGA)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  declarations    WasteDeclaration[] @relation("Declarant")
+  assignedPickups WasteDeclaration[] @relation("Collecteur")
+  orders          Order[]
+}
+
+// ─── Matériaux et grille tarifaire ───────────────────────────────────────────
+
+enum MaterialCategory {
+  PLASTIQUE
+  PAPIER_CARTON
+  METAL
+  VERRE
+  ELECTRONIQUE
+  TEXTILE
+  ORGANIQUE
+  AUTRE
+}
+
+model Material {
+  id         String           @id @default(cuid())
+  code       String           @unique // ex : PET, PEHD, ALU
+  name       String
+  category   MaterialCategory
+  pricePerKg Int // prix de rachat de base, MGA/kg (modifiable dans l'admin)
+  active     Boolean          @default(true)
+  updatedAt  DateTime         @updatedAt
+
+  items            WasteItem[]
+  lots             MaterialLot[]
+  collectionPoints CollectionPoint[]
+}
+
+// ─── Points d'apport ─────────────────────────────────────────────────────────
+
+model CollectionPoint {
+  id           String  @id @default(cuid())
+  name         String
+  address      String
+  district     String? // fokontany / arrondissement
+  lat          Float
+  lng          Float
+  openingHours String?
+  active       Boolean @default(true)
+
+  acceptedMaterials Material[]
+  declarations      WasteDeclaration[]
+}
+
+// ─── Collecte ────────────────────────────────────────────────────────────────
+
+enum CollectionMode {
+  ENLEVEMENT // on vient chercher chez le déclarant
+  APPORT // le déclarant dépose à un point d'apport
+}
+
+enum DeclarationStatus {
+  EN_ATTENTE
+  PLANIFIEE
+  COLLECTEE
+  PAYEE
+  ANNULEE
+}
+
+enum PaymentMethod {
+  MVOLA
+  ORANGE_MONEY
+  AIRTEL_MONEY
+  ESPECES
+  CREDIT_BOUTIQUE
+}
+
+enum WasteQuality {
+  TRIE_PROPRE
+  TRIE_SALE
+  MELANGE
+}
+
+model WasteDeclaration {
+  id     String            @id @default(cuid())
+  mode   CollectionMode
+  status DeclarationStatus @default(EN_ATTENTE)
+
+  declarantId String
+  declarant   User   @relation("Declarant", fields: [declarantId], references: [id])
+
+  // Enlèvement : adresse du déclarant
+  address String?
+  lat     Float?
+  lng     Float?
+
+  // Apport : point de dépôt choisi
+  collectionPointId String?
+  collectionPoint   CollectionPoint? @relation(fields: [collectionPointId], references: [id])
+
+  collectorId String?
+  collector   User?     @relation("Collecteur", fields: [collectorId], references: [id])
+  scheduledAt DateTime?
+  collectedAt DateTime?
+
+  photoUrls      String[]
+  notes          String?
+  estimatedValue Int // estimation au moment de la déclaration (MGA)
+  finalValue     Int? // montant après pesée réelle (MGA)
+  payoutMethod   PaymentMethod @default(MVOLA)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items WasteItem[]
+
+  @@index([status])
+}
+
+model WasteItem {
+  id            String           @id @default(cuid())
+  declarationId String
+  declaration   WasteDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  materialId    String
+  material      Material         @relation(fields: [materialId], references: [id])
+  quality       WasteQuality     @default(TRIE_PROPRE)
+  estimatedKg   Float
+  actualKg      Float? // pesée par le collecteur
+
+  // Traçabilité : lot de matière dans lequel ce déchet a été versé
+  lotId String?
+  lot   MaterialLot? @relation(fields: [lotId], references: [id])
+}
+
+// ─── Transformation et traçabilité ───────────────────────────────────────────
+
+model MaterialLot {
+  id         String   @id @default(cuid())
+  reference  String   @unique // ex : LOT-2026-11-PET-001
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+  totalKg    Float    @default(0)
+  createdAt  DateTime @default(now())
+
+  items    WasteItem[]
+  products ProductLot[]
+}
+
+// ─── Boutique ────────────────────────────────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  price       Int // MGA
+  stock       Int      @default(0)
+  images      String[]
+  recycledKg  Float? // matière recyclée contenue dans un exemplaire
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lots       ProductLot[]
+  orderItems OrderItem[]
+}
+
+model ProductLot {
+  productId String
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  lotId     String
+  lot       MaterialLot @relation(fields: [lotId], references: [id])
+
+  @@id([productId, lotId])
+}
+
+enum OrderStatus {
+  EN_ATTENTE_PAIEMENT
+  PAYEE
+  EXPEDIEE
+  LIVREE
+  ANNULEE
+}
+
+enum PaymentStatus {
+  EN_ATTENTE
+  REUSSI
+  ECHOUE
+  REMBOURSE
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  customerName    String
+  customerPhone   String
+  deliveryAddress String?
+  status          OrderStatus @default(EN_ATTENTE_PAIEMENT)
+  total           Int // MGA, crédits déduits inclus
+  creditsUsed     Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items    OrderItem[]
+  payments Payment[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Int // prix figé au moment de la commande (MGA)
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id])
+  method      PaymentMethod
+  status      PaymentStatus @default(EN_ATTENTE)
+  amount      Int
+  providerRef String? // référence de transaction MVola / Orange Money / Airtel
+  createdAt   DateTime      @default(now())
+}
