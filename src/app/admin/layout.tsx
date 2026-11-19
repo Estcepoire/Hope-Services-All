@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/collectes", label: "Collectes" },
   { href: "/admin/tarifs", label: "Tarifs" },
   { href: "/admin/produits", label: "Produits" },
+  { href: "/admin/messages", label: "Messages" },
 ];
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {

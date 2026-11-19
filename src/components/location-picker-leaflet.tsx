@@ -30,7 +30,7 @@ export default function LocationPickerLeaflet({ value, onPick }: { value: LatLng
       />
       <ClickHandler onPick={onPick} />
       <Recenter value={value} />
-      {value && <CircleMarker center={[value.lat, value.lng]} radius={10} pathOptions={{ color: "#1f7a45", fillOpacity: 0.8 }} />}
+      {value && <CircleMarker center={[value.lat, value.lng]} radius={10} pathOptions={{ color: "#1f6b3a", fillOpacity: 0.8 }} />}
     </MapContainer>
   );
 }

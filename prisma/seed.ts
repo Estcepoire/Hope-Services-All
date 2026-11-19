@@ -3,6 +3,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import type { ProductCategory } from "../src/generated/prisma/enums";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -28,10 +29,11 @@ const points = [
   { name: "Point d'apport Ivandry (exemple)", address: "Ivandry, Antananarivo", district: "6e arrondissement", lat: -18.87, lng: 47.533 },
 ];
 
-const products = [
-  { slug: "sac-cabas-recycle", name: "Sac cabas en plastique recyclé", description: "Sac solide tissé à partir de sachets plastique collectés à Antananarivo.", price: 15000, stock: 20, recycledKg: 0.3 },
-  { slug: "pave-plastique", name: "Pavé en plastique recyclé", description: "Pavé résistant fabriqué à partir de plastique fondu et de sable.", price: 2500, stock: 500, recycledKg: 1.2 },
-  { slug: "carnet-papier-recycle", name: "Carnet en papier recyclé", description: "Carnet A5 fait main à partir de papier de bureau récupéré.", price: 8000, stock: 40, recycledKg: 0.2 },
+const products: { slug: string; category: ProductCategory; name: string; description: string; price: number; stock: number; recycledKg: number }[] = [
+  { slug: "sac-cabas-recycle", category: "MODE", name: "Sac cabas en plastique recyclé", description: "Sac solide tissé à partir de sachets plastique collectés à Antananarivo.", price: 15000, stock: 20, recycledKg: 0.3 },
+  { slug: "pave-plastique", category: "CONSTRUCTION", name: "Pavé en plastique recyclé", description: "Pavé résistant fabriqué à partir de plastique fondu et de sable.", price: 2500, stock: 500, recycledKg: 1.2 },
+  { slug: "corbeille-tressee", category: "MAISON", name: "Corbeille tressée en sachets recyclés", description: "Corbeille souple tressée à la main à partir de sachets plastique lavés.", price: 12000, stock: 15, recycledKg: 0.4 },
+  { slug: "carnet-papier-recycle", category: "PAPETERIE", name: "Carnet en papier recyclé", description: "Carnet A5 fait main à partir de papier de bureau récupéré.", price: 8000, stock: 40, recycledKg: 0.2 },
 ];
 
 async function main() {
@@ -49,7 +51,7 @@ async function main() {
   }
 
   for (const p of products) {
-    await prisma.product.upsert({ where: { slug: p.slug }, update: {}, create: { ...p, published: true } });
+    await prisma.product.upsert({ where: { slug: p.slug }, update: { category: p.category }, create: { ...p, published: true } });
   }
 
   console.log(`Seed OK : ${materials.length} matériaux, ${points.length} points, ${products.length} produits`);

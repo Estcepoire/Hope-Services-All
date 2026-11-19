@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createPickupRequest, type PickupFormState } from "@/lib/actions/pickup";
 import { roadKmFromDepot } from "@/lib/distance";
@@ -163,12 +164,13 @@ export function PickupForm({ materials }: { materials: Material[] }) {
               <div key={p.url} className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob:) */}
                 <img src={p.url} alt={`Photo ${i + 1}`} className="h-24 w-24 rounded-lg object-cover" />
-                <button type="button" onClick={() => removePhoto(i)} aria-label="Retirer la photo" className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white text-sm shadow">✕</button>
+                <button type="button" onClick={() => removePhoto(i)} aria-label="Retirer la photo" className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-white shadow"><X className="h-3.5 w-3.5" /></button>
               </div>
             ))}
             {photos.length < MAX_PHOTOS && (
               <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-black/20 text-center text-xs text-black/60 hover:border-brand">
-                📷 Ajouter
+                <Camera aria-hidden className="mb-1 h-6 w-6" strokeWidth={1.5} />
+                Ajouter
                 <input type="file" accept="image/*" capture="environment" multiple className="sr-only" onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
               </label>
             )}

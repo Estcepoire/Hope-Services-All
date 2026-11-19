@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { LocateFixed } from "lucide-react";
 
 export type LatLng = { lat: number; lng: number };
 
@@ -35,8 +36,9 @@ export function LocationPicker({ value, onChange }: { value: LatLng | null; onCh
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={locate} disabled={locating} className="rounded-full border border-brand px-4 py-2 text-sm font-medium text-brand disabled:opacity-50">
-          {locating ? "Localisation…" : "📍 Utiliser ma position"}
+        <button type="button" onClick={locate} disabled={locating} className="flex items-center gap-2 rounded-full border border-brand px-4 py-2 text-sm font-medium text-brand disabled:opacity-50">
+          <LocateFixed aria-hidden className="h-4 w-4" />
+          {locating ? "Localisation…" : "Utiliser ma position"}
         </button>
         <span className="text-sm text-black/60">ou cliquez sur la carte à l&apos;endroit de l&apos;enlèvement</span>
       </div>

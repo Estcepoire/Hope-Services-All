@@ -1,25 +1,54 @@
 @import "tailwindcss";
 
-/* Couleurs de marque : à ajuster selon le logo HOPE Services */
+/* Direction visuelle inspirée de HopeRise (Dribbble) : fond beige chaud, cartes claires,
+   gros titres serrés, chiffres d'impact en vert vif. Couleurs tirées du logo HOPE Services
+   (vert #6ab030, virgule jaune) et de sa couverture Facebook (vert profond). */
 :root {
-  --background: #ffffff;
-  --foreground: #1c2a21;
-  --brand: #1f7a45;
-  --brand-dark: #155c33;
-  --brand-light: #e8f5ec;
+  --background: #f4ede1; /* beige de page */
+  --surface: #fffcf6; /* cartes et formulaires */
+  --sand: #e9dfcd; /* bandeaux, séparateurs */
+  --foreground: #1c1b18;
+  --brand: #1f6b3a; /* vert profond de la couverture : lisible sur beige */
+  --brand-dark: #154d29;
+  --brand-light: #e4efd9;
+  --accent: #5a9e24; /* vert du logo, assombri pour rester lisible en grand */
+  --highlight: #f2b417; /* virgule jaune du logo */
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-sand: var(--sand);
   --color-foreground: var(--foreground);
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
+  --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Titres : police d'affichage, graisse forte, approche serrée */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Bandeau pleine largeur à l'intérieur du conteneur centré des pages */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+body {
+  overflow-x: clip;
 }

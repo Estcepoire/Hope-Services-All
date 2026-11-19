@@ -187,18 +187,27 @@ model MaterialLot {
 
 // ─── Boutique ────────────────────────────────────────────────────────────────
 
+enum ProductCategory {
+  MAISON
+  MODE
+  CONSTRUCTION
+  PAPETERIE
+  AUTRE
+}
+
 model Product {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String          @id @default(cuid())
+  slug        String          @unique
   name        String
+  category    ProductCategory @default(AUTRE)
   description String
   price       Int // MGA
-  stock       Int      @default(0)
+  stock       Int             @default(0)
   images      String[]
   recycledKg  Float? // matière recyclée contenue dans un exemplaire
-  published   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  published   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   lots       ProductLot[]
   orderItems OrderItem[]
@@ -264,4 +273,27 @@ model Payment {
   amount      Int
   providerRef String? // référence de transaction MVola / Orange Money / Airtel
   createdAt   DateTime      @default(now())
+}
+
+// ─── Contact ─────────────────────────────────────────────────────────────────
+
+enum ContactTopic {
+  PARTICULIER
+  ENTREPRISE
+  BOUTIQUE
+  PARTENARIAT
+  AUTRE
+}
+
+model ContactMessage {
+  id        String       @id @default(cuid())
+  topic     ContactTopic
+  name      String
+  contact   String // téléphone ou e-mail laissé par la personne
+  company   String?
+  message   String
+  handled   Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  @@index([handled, createdAt])
 }

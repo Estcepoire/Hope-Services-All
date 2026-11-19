@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { QUALITY_LABELS, type EstimationLine, type Quality } from "@/lib/estimation";
 import { formatAriary } from "@/lib/format";
 
@@ -80,7 +81,7 @@ export function WasteLinesEditor({
             className="px-2 text-black/50 hover:text-red-600 disabled:opacity-30"
             aria-label="Retirer cette ligne"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
       ))}

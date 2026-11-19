@@ -16,7 +16,7 @@ export default function PointsMapLeaflet({ points }: { points: MapPoint[] }) {
       />
       {/* CircleMarker plutôt que Marker : évite les icônes PNG que le bundler ne trouve pas */}
       {points.map((p) => (
-        <CircleMarker key={p.id} center={[p.lat, p.lng]} radius={10} pathOptions={{ color: "#1f7a45", fillOpacity: 0.7 }}>
+        <CircleMarker key={p.id} center={[p.lat, p.lng]} radius={10} pathOptions={{ color: "#1f6b3a", fillOpacity: 0.7 }}>
           <Popup>
             <strong>{p.name}</strong>
             <br />
