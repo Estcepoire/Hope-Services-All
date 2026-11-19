@@ -17,7 +17,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/uploads/declara
   const photo = await readDeclarationPhoto(id, file);
   if (!photo) return new Response("Introuvable", { status: 404 });
 
-  return new Response(new Uint8Array(photo.data), {
+  return new Response(photo.body, {
     headers: {
       "Content-Type": photo.type,
       "Cache-Control": "private, max-age=86400",
