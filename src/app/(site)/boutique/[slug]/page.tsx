@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { AddToCart } from "@/components/add-to-cart";
 import { ProductCard } from "@/components/product-card";
 import { getProduct, getProducts } from "@/lib/data";
 import { formatAriary } from "@/lib/format";
@@ -67,14 +68,11 @@ async function ProductDetails({ params }: Pick<PageProps<"/boutique/[slug]">, "p
             </div>
             <p className="text-lg text-black/70">{product.description}</p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              {/* TODO : panier côté client + commande via server action */}
-              <button disabled className="rounded-full bg-foreground px-6 py-3.5 font-semibold text-white opacity-50">
-                Ajouter au panier (bientôt)
-              </button>
+            <div className="flex flex-col gap-2">
               <span className={`text-sm font-medium ${product.stock > 0 ? "text-brand" : "text-red-600"}`}>
-                {product.stock > 0 ? `● En stock (${product.stock})` : "● Épuisé"}
+                {product.stock > 0 ? `En stock (${product.stock})` : "Épuisé"}
               </span>
+              <AddToCart slug={product.slug} stock={product.stock} />
             </div>
 
             {/* À confirmer par HOPE Services : lieu de fabrication et zone de livraison */}

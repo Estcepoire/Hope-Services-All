@@ -1,8 +1,9 @@
-import { Menu, ShoppingBag } from "lucide-react";
+import { Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountLink, LoginLink } from "@/components/account-link";
+import { CartButton } from "@/components/cart-button";
 
 const links = [
   { href: "/boutique", label: "Boutique" },
@@ -40,9 +41,7 @@ export function SiteHeader() {
               <AccountLink />
             </Suspense>
           </span>
-          <Link href="/panier" aria-label="Panier" className="grid h-10 w-10 place-items-center rounded-full border border-black/15 hover:border-brand">
-            <ShoppingBag className="h-[18px] w-[18px]" />
-          </Link>
+          <CartButton />
           <Link href="/collecte/declarer" className="hidden rounded-full bg-foreground px-4 py-2.5 text-white hover:bg-brand sm:inline-block">
             Faire collecter
           </Link>

@@ -51,3 +51,19 @@ export const SORTS = [
   { value: "prix-croissant", label: "Prix croissant" },
   { value: "prix-decroissant", label: "Prix décroissant" },
 ] as const;
+
+export const ORDER_STATUS_LABELS = {
+  EN_ATTENTE_PAIEMENT: "En attente de paiement",
+  PAYEE: "Payée",
+  EXPEDIEE: "En livraison",
+  LIVREE: "Livrée",
+  ANNULEE: "Annulée",
+} as const;
+
+export const ORDER_STATUS_COLORS = {
+  EN_ATTENTE_PAIEMENT: "bg-amber-100 text-amber-800",
+  PAYEE: "bg-blue-100 text-blue-800",
+  EXPEDIEE: "bg-violet-100 text-violet-800",
+  LIVREE: "bg-green-100 text-green-800",
+  ANNULEE: "bg-black/5 text-black/60",
+} as const;

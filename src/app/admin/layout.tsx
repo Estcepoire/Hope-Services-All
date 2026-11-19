@@ -6,6 +6,7 @@ import Link from "next/link";
 const links = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/collectes", label: "Collectes" },
+  { href: "/admin/commandes", label: "Commandes" },
   { href: "/admin/tarifs", label: "Tarifs" },
   { href: "/admin/produits", label: "Produits" },
   { href: "/admin/messages", label: "Messages" },
