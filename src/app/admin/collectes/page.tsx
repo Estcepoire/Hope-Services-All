@@ -1,17 +1,20 @@
 import { Suspense } from "react";
+import { Card, PageTitle } from "@/components/admin/ui";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { formatAriary } from "@/lib/format";
 
 export default function CollectionsAdminPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Collectes</h1>
+    <>
+      <PageTitle title="Collectes" crumbs={["Collectes"]} />
       {/* TODO : assigner un collecteur, planifier, carte de chaleur des déclarations */}
-      <Suspense fallback={<p>Chargement…</p>}>
+      <Card>
+        <Suspense fallback={<p>Chargement…</p>}>
         <DeclarationsTable />
       </Suspense>
-    </div>
+      </Card>
+    </>
   );
 }
 
@@ -27,12 +30,12 @@ async function DeclarationsTable() {
 
   return (
     <table className="w-full text-left text-sm">
-      <thead className="border-b border-black/10 text-black/60">
+      <thead className="border-b-2 border-[#e6ece3] text-brand-dark">
         <tr><th className="py-2">Date</th><th>Déclarant</th><th>Mode</th><th>Lieu</th><th>Statut</th><th className="text-right">Estimation</th></tr>
       </thead>
       <tbody>
         {declarations.map((d) => (
-          <tr key={d.id} className="border-b border-black/5">
+          <tr key={d.id} className="border-b border-[#e6ece3]">
             <td className="py-2">{d.createdAt.toLocaleDateString("fr-FR")}</td>
             <td>{d.declarant.name}</td>
             <td>{d.mode === "APPORT" ? "Apport" : "Enlèvement"}</td>

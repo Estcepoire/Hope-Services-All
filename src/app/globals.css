@@ -36,11 +36,14 @@ body {
 }
 
 /* Titres : police d'affichage, graisse forte, approche serrée */
-h1,
-h2,
-h3 {
-  font-family: var(--font-display), var(--font-sans), sans-serif;
-  letter-spacing: -0.02em;
+/* Dans la couche « base » pour que les classes utilitaires (font-sans, tracking-…) puissent la surcharger */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 /* Bandeau pleine largeur à l'intérieur du conteneur centré des pages */

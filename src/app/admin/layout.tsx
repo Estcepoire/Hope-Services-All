@@ -1,29 +1,28 @@
-import Link from "next/link";
+import { Nunito, Poppins } from "next/font/google";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { auth } from "@/auth";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 // Accès réservé au rôle admin : vérifié par requireRole() dans chaque composant qui lit des données
 // (un layout ne se ré-exécute pas à chaque navigation, il ne suffit donc pas comme garde).
+// Polices de NiceAdmin : Poppins (titres et navigation) et Nunito (texte).
 
-const links = [
-  { href: "/admin", label: "Tableau de bord" },
-  { href: "/admin/collectes", label: "Collectes" },
-  { href: "/admin/commandes", label: "Commandes" },
-  { href: "/admin/tarifs", label: "Tarifs" },
-  { href: "/admin/produits", label: "Produits" },
-  { href: "/admin/messages", label: "Messages" },
-];
+const poppins = Poppins({ variable: "--font-poppins", subsets: ["latin"], weight: ["500", "600", "700"] });
+const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <div className="flex min-h-full flex-1 flex-col md:flex-row">
-      <aside className="border-b border-black/10 bg-brand-light p-4 md:w-56 md:border-b-0 md:border-r">
-        <p className="mb-4 font-bold text-brand">HOPE · Admin</p>
-        <nav className="flex gap-3 text-sm md:flex-col">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-brand">{l.label}</Link>
-          ))}
-        </nav>
-      </aside>
-      <main className="flex-1 p-6">{children}</main>
+    <div className={`${poppins.variable} ${nunito.variable}`}>
+      <Suspense fallback={<div className="min-h-screen bg-[#f5f8f2]" />}>
+        <Shell>{children}</Shell>
+      </Suspense>
     </div>
   );
+}
+
+async function Shell({ children }: { children: React.ReactNode }) {
+  await connection();
+  const session = await auth();
+  return <AdminShell userName={session?.user?.name ?? "Admin"}>{children}</AdminShell>;
 }

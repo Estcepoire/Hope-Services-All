@@ -1,5 +1,6 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { Suspense } from "react";
+import { Card, PageTitle } from "@/components/admin/ui";
 import type { OrderStatus } from "@/generated/prisma/enums";
 import { formatAriary } from "@/lib/format";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS, PAYOUT_LABELS } from "@/lib/labels";
@@ -58,12 +59,14 @@ async function changeStatus(formData: FormData) {
 
 export default function OrdersAdminPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Commandes</h1>
-      <Suspense fallback={<p>Chargement…</p>}>
+    <>
+      <PageTitle title="Commandes" crumbs={["Commandes"]} />
+      <Card>
+        <Suspense fallback={<p>Chargement…</p>}>
         <Orders />
       </Suspense>
-    </div>
+      </Card>
+    </>
   );
 }
 
@@ -79,7 +82,7 @@ async function Orders() {
   return (
     <ul className="flex max-w-4xl flex-col gap-3">
       {orders.map((o) => (
-        <li key={o.id} className="flex flex-col gap-3 rounded-xl border border-black/10 bg-surface p-4">
+        <li key={o.id} className="flex flex-col gap-3 rounded-md border border-[#e6ece3] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p>
               <strong>n° {o.id.slice(-6).toUpperCase()}</strong> · {o.customerName} · {o.customerPhone}

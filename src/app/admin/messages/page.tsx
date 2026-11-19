@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { Suspense } from "react";
+import { Card, PageTitle } from "@/components/admin/ui";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 
@@ -13,12 +14,14 @@ const TOPIC_LABELS = {
 
 export default function MessagesPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Messages du formulaire de contact</h1>
-      <Suspense fallback={<p>Chargement…</p>}>
+    <>
+      <PageTitle title="Messages du formulaire de contact" crumbs={["Messages du formulaire de contact"]} />
+      <Card>
+        <Suspense fallback={<p>Chargement…</p>}>
         <Messages />
       </Suspense>
-    </div>
+      </Card>
+    </>
   );
 }
 
@@ -37,7 +40,7 @@ async function Messages() {
   return (
     <ul className="flex max-w-3xl flex-col gap-3">
       {messages.map((m) => (
-        <li key={m.id} className={`rounded-xl border border-black/10 bg-surface p-4 ${m.handled ? "opacity-60" : ""}`}>
+        <li key={m.id} className={`rounded-md border border-[#e6ece3] p-4 ${m.handled ? "opacity-60" : ""}`}>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <p>
               <strong>{m.name}</strong>
