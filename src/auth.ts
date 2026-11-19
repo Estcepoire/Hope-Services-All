@@ -45,15 +45,38 @@ function primaryRole(roles: AppRole[]): Role {
   return "PARTICULIER";
 }
 
-async function syncUser(sub: string, name: string, email: string | null | undefined, roles: AppRole[]) {
-  const data = { name, email: email ?? null, role: primaryRole(roles) };
-  const user = await prisma.user.upsert({
-    where: { keycloakId: sub },
-    update: data,
-    create: { keycloakId: sub, ...data },
+async function syncUser(
+  sub: string,
+  name: string,
+  email: string | null | undefined,
+  emailVerified: boolean,
+  roles: AppRole[],
+) {
+  const role = primaryRole(roles);
+  const existing = await prisma.user.findUnique({ where: { keycloakId: sub }, select: { id: true } });
+  if (existing) {
+    await prisma.user.update({ where: { id: existing.id }, data: { name, email: email ?? null, role } });
+    return existing.id;
+  }
+
+  if (email) {
+    const sameEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (sameEmail) {
+      // Compte Keycloak recréé avec le même e-mail (réinscription, realm réinitialisé) :
+      // on rattache l'historique seulement si Keycloak garantit que l'e-mail appartient bien à la personne.
+      if (emailVerified) {
+        await prisma.user.update({ where: { id: sameEmail.id }, data: { keycloakId: sub, name, role } });
+        return sameEmail.id;
+      }
+      email = null; // e-mail non vérifié : nouveau compte, sans reprendre les données de l'ancien
+    }
+  }
+
+  const created = await prisma.user.create({
+    data: { keycloakId: sub, name, email: email ?? null, role },
     select: { id: true },
   });
-  return user.id;
+  return created.id;
 }
 
 async function refresh(refreshToken: string) {
@@ -89,7 +112,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           ...token,
           roles,
-          userId: await syncUser(token.sub!, name, token.email, roles),
+          // `token.sub` est un identifiant Auth.js aléatoire : l'identifiant Keycloak est providerAccountId.
+          userId: await syncUser(account.providerAccountId, name, token.email, profile?.email_verified === true, roles),
           idToken: account.id_token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
@@ -106,7 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const t = await refresh(token.refreshToken);
         const roles = rolesFrom(t.access_token);
         if (roles.join() !== token.roles?.join()) {
-          await prisma.user.update({ where: { keycloakId: token.sub! }, data: { role: primaryRole(roles) } });
+          await prisma.user.update({ where: { id: token.userId }, data: { role: primaryRole(roles) } });
         }
         return {
           ...token,

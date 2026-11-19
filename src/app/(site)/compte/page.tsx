@@ -49,6 +49,7 @@ async function Account() {
 
       <div className="flex flex-wrap gap-3">
         <Link href="/collecte/declarer" className="rounded-full bg-brand px-4 py-2 text-white hover:bg-brand-dark">Demander un enlèvement</Link>
+        <Link href="/compte/collectes" className="rounded-full border border-brand px-4 py-2 text-brand">Mes collectes</Link>
         {roles.includes("collecteur") || roles.includes("admin") ? (
           <Link href="/collecteur" className="rounded-full border border-brand px-4 py-2 text-brand">Espace collecteur</Link>
         ) : null}

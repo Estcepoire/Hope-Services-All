@@ -1,38 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { estimate, QUALITY_LABELS, type Mode, type Quality } from "@/lib/estimation";
+import { estimate, type Mode } from "@/lib/estimation";
 import { formatAriary } from "@/lib/format";
-
-type Material = { id: string; code: string; name: string; pricePerKg: number };
-type Line = { key: number; materialId: string; kg: number; quality: Quality };
+import { newLine, toEstimationLines, WasteLinesEditor, type Material } from "./waste-lines";
 
 export function Estimator({ materials }: { materials: Material[] }) {
   const [mode, setMode] = useState<Mode>("APPORT");
   const [distanceKm, setDistanceKm] = useState(3);
-  const [lines, setLines] = useState<Line[]>([
-    { key: 0, materialId: materials[0]?.id ?? "", kg: 5, quality: "TRIE_PROPRE" },
-  ]);
+  const [lines, setLines] = useState(() => [newLine(materials, 5)]);
 
-  const byId = new Map(materials.map((m) => [m.id, m]));
-  const result = estimate({
-    mode,
-    distanceKm,
-    lines: lines
-      .filter((l) => byId.has(l.materialId))
-      .map((l) => {
-        const m = byId.get(l.materialId)!;
-        return { materialCode: m.code, pricePerKg: m.pricePerKg, kg: l.kg, quality: l.quality };
-      }),
-  });
-
-  const update = (key: number, patch: Partial<Line>) =>
-    setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  const result = estimate({ mode, distanceKm, lines: toEstimationLines(lines, materials) });
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(["APPORT", "ENLEVEMENT"] as const).map((m) => (
             <button
               key={m}
@@ -53,50 +37,7 @@ export function Estimator({ materials }: { materials: Material[] }) {
           </label>
         )}
 
-        {lines.map((l) => (
-          <div key={l.key} className="grid gap-2 rounded-xl border border-black/10 p-3 sm:grid-cols-[2fr_1fr_1.5fr_auto]">
-            <select value={l.materialId} onChange={(e) => update(l.key, { materialId: e.target.value })} className="rounded-lg border border-black/15 p-2">
-              {materials.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({formatAriary(m.pricePerKg)}/kg)
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={l.kg}
-                onChange={(e) => update(l.key, { kg: Number(e.target.value) })}
-                className="w-full rounded-lg border border-black/15 p-2"
-              />
-              kg
-            </label>
-            <select value={l.quality} onChange={(e) => update(l.key, { quality: e.target.value as Quality })} className="rounded-lg border border-black/15 p-2">
-              {Object.entries(QUALITY_LABELS).map(([q, label]) => (
-                <option key={q} value={q}>{label}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
-              disabled={lines.length === 1}
-              className="px-2 text-black/50 hover:text-red-600 disabled:opacity-30"
-              aria-label="Retirer cette ligne"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-
-        <button
-          onClick={() =>
-            setLines((ls) => [...ls, { key: Date.now(), materialId: materials[0]?.id ?? "", kg: 1, quality: "TRIE_PROPRE" }])
-          }
-          className="w-fit text-sm font-medium text-brand"
-        >
-          + Ajouter un matériau
-        </button>
+        <WasteLinesEditor materials={materials} lines={lines} onChange={setLines} />
       </div>
 
       <aside className="h-fit rounded-2xl bg-brand-light p-6">
@@ -112,9 +53,9 @@ export function Estimator({ materials }: { materials: Material[] }) {
             <dt>Vous recevez environ</dt><dd>{formatAriary(result.net)}</dd>
           </div>
         </dl>
-        <a href={mode === "APPORT" ? "/collecte/points" : "/collecte/declarer"} className="mt-6 block rounded-full bg-brand px-4 py-3 text-center font-medium text-white hover:bg-brand-dark">
+        <Link href={mode === "APPORT" ? "/collecte/points" : "/collecte/declarer"} className="mt-6 block rounded-full bg-brand px-4 py-3 text-center font-medium text-white hover:bg-brand-dark">
           {mode === "APPORT" ? "Trouver un point d'apport" : "Demander un enlèvement"}
-        </a>
+        </Link>
       </aside>
     </div>
   );
