@@ -37,6 +37,8 @@ services:
       KC_DB_PASSWORD: hope
       KC_HTTP_PORT: 8080
       KC_HEALTH_ENABLED: "true"
+      # Accepte les en-têtes X-Forwarded-* (tunnel ou proxy HTTPS devant Keycloak, ex. démo cloudflared)
+      KC_PROXY_HEADERS: xforwarded
     ports:
       - "8080:8080"
     volumes:

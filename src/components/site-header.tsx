@@ -58,9 +58,9 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Link href="/collecte/declarer" className="rounded-lg px-3 py-2 hover:bg-brand-light">Faire collecter</Link>
-              <span className="rounded-lg px-3 py-2 hover:bg-brand-light">
+              <span className="rounded-lg px-3 py-2">
                 <Suspense fallback={<LoginLink />}>
-                  <AccountLink />
+                  <AccountLink compact />
                 </Suspense>
               </span>
             </nav>

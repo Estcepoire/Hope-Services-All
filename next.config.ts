@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Image Docker légère : serveur Node autonome (voir Dockerfile).
   output: "standalone",
-  /* config options here */
+  // Dossier de build séparé possible (ex. démo publique pendant que « next dev » tourne) : NEXT_DIST_DIR=.next-demo
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
