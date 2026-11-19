@@ -1,0 +1,95 @@
+# Production HOPE Services : un seul serveur (ex. VM Oracle Cloud Always Free).
+# Usage : voir DEPLOIEMENT.md
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Caddy : HTTPS automatique (Let's Encrypt) pour le site et pour Keycloak.
+# Seuls les ports 80 et 443 sont ouverts ; la base et Keycloak restent sur le réseau interne.
+
+services:
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      AUTH_DOMAIN: ${AUTH_DOMAIN}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+      - keycloak
+
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/hope_services?schema=public
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: https://${APP_DOMAIN}
+      AUTH_TRUST_HOST: "true"
+      AUTH_KEYCLOAK_ID: hope-web
+      AUTH_KEYCLOAK_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      AUTH_KEYCLOAK_ISSUER: https://${AUTH_DOMAIN}/realms/hope
+      AUTH_GOOGLE_ENABLED: ${AUTH_GOOGLE_ENABLED:-false}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Applique les migrations Prisma à chaque déploiement, puis s'arrête.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/hope_services?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hope_services
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    restart: unless-stopped
+    command: start --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: https://${AUTH_DOMAIN}
+      KC_HTTP_ENABLED: "true" # HTTPS assuré par Caddy devant
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  uploads:
+  caddy-data:
+  caddy-config:

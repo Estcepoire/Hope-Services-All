@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Image Docker légère : serveur Node autonome (voir Dockerfile).
+  output: "standalone",
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,

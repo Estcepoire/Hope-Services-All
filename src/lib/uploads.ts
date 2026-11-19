@@ -7,7 +7,8 @@ import path from "node:path";
 // le build n'y seraient pas servis). Servies par /api/uploads/… avec contrôle d'accès.
 // En production, prévoir un volume persistant, ou remplacer par un stockage objet (S3, R2…).
 
-const ROOT = path.resolve(process.env.UPLOAD_DIR ?? "uploads");
+// turbopackIgnore : dossier de données lu à l'exécution, à ne pas embarquer dans le build.
+const ROOT = path.resolve(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR ?? "uploads");
 
 export const PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",

@@ -1,3 +1,4 @@
+import { Recycle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -25,9 +26,9 @@ export default function HomePage() {
         </span>
         <h1 className="max-w-4xl text-5xl font-extrabold leading-[0.95] sm:text-7xl">
           Vos déchets
-          {/* Photo dans une pastille, comme le titre de HopeRise */}
-          <span aria-hidden className="relative mx-3 inline-block h-[0.8em] w-[1.7em] translate-y-[0.08em] overflow-hidden rounded-full align-baseline">
-            <Image src="/images/hope/poubelles-tri.jpg" alt="" fill sizes="200px" className="object-cover object-[60%_55%]" priority />
+          {/* Pastille dans le titre (signature HopeRise) : symbole du recyclage aux couleurs du logo */}
+          <span aria-hidden className="mx-3 inline-flex h-[0.8em] w-[1.6em] translate-y-[0.08em] items-center justify-center rounded-full bg-gradient-to-r from-brand to-accent align-baseline text-white">
+            <Recycle className="h-[0.55em] w-[0.55em]" strokeWidth={2.2} />
           </span>
           ont de la valeur
         </h1>

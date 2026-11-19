@@ -1,0 +1,10 @@
+# HTTPS automatique (Let's Encrypt) : les deux domaines doivent pointer vers l'IP du serveur.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+{$AUTH_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy keycloak:8080
+}

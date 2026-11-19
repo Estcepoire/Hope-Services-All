@@ -9,7 +9,7 @@ const CENTER: [number, number] = [-18.8792, 47.5079];
 
 export default function PointsMapLeaflet({ points }: { points: MapPoint[] }) {
   return (
-    <MapContainer center={CENTER} zoom={13} className="h-[480px] w-full rounded-2xl">
+    <MapContainer center={CENTER} zoom={13} className="h-[480px] w-full">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
