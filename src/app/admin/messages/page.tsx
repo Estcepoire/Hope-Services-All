@@ -1,10 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { Suspense } from "react";
-import { FieldFilter, ListToolbar, Pagination, SelectFilter } from "@/components/admin/list-toolbar";
+import { FieldFilter, ListToolbar, Pagination, SelectFilter, SortSelectFilter } from "@/components/admin/list-toolbar";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { Card, PageTitle } from "@/components/admin/ui";
 import type { Prisma } from "@/generated/prisma/client";
-import { dateRange, oneOf, pageParams, str } from "@/lib/admin/list-params";
+import { dateRange, oneOf, pageParams, sortParams, str, type SortDir } from "@/lib/admin/list-params";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 
@@ -31,6 +31,15 @@ export default function MessagesPage(props: PageProps<"/admin/messages">) {
 
 const TOPICS = Object.keys(TOPIC_LABELS) as (keyof typeof TOPIC_LABELS)[];
 
+const SORTS = {
+  date: (dir: SortDir) => ({ createdAt: dir }),
+  nom: (dir: SortDir) => ({ name: dir }),
+  sujet: (dir: SortDir) => ({ topic: dir }),
+  etat: (dir: SortDir) => ({ handled: dir }),
+} satisfies Record<string, (dir: SortDir) => Prisma.ContactMessageOrderByWithRelationInput>;
+type SortKey = keyof typeof SORTS;
+const SORT_LABELS: Record<SortKey, string> = { date: "Date", nom: "Nom", sujet: "Sujet", etat: "Traité" };
+
 async function deleteMessage(formData: FormData) {
   "use server";
   await requireRole(["admin"], "/admin/messages");
@@ -51,6 +60,7 @@ async function Messages({ searchParams }: PageProps<"/admin/messages">) {
   const q = str(sp, "q");
   const sujet = oneOf(sp, "sujet", TOPICS);
   const etat = oneOf(sp, "etat", ["a-traiter", "traites"] as const);
+  const sort = sortParams(sp, Object.keys(SORTS) as SortKey[], { key: "etat", dir: "asc" });
   const { page, skip, take } = pageParams(sp);
 
   const where: Prisma.ContactMessageWhereInput = {
@@ -68,7 +78,7 @@ async function Messages({ searchParams }: PageProps<"/admin/messages">) {
   };
   const [total, messages] = await Promise.all([
     prisma.contactMessage.count({ where }),
-    prisma.contactMessage.findMany({ where, orderBy: [{ handled: "asc" }, { createdAt: "desc" }], skip, take }),
+    prisma.contactMessage.findMany({ where, orderBy: [SORTS[sort.key](sort.dir), { createdAt: "desc" }], skip, take }),
   ]);
 
   const toolbar = (
@@ -80,6 +90,7 @@ async function Messages({ searchParams }: PageProps<"/admin/messages">) {
         <>
           <SelectFilter name="etat" label="État" value={etat} options={[{ value: "a-traiter", label: "À traiter" }, { value: "traites", label: "Traités" }]} />
           <SelectFilter name="sujet" label="Sujet" value={sujet} options={TOPICS.map((t) => ({ value: t, label: TOPIC_LABELS[t] }))} />
+          <SortSelectFilter sp={sp} options={(Object.keys(SORTS) as SortKey[]).map((k) => ({ value: k, label: SORT_LABELS[k] }))} />
         </>
       }
       advanced={

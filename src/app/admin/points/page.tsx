@@ -2,10 +2,10 @@ import { CircleCheck, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ConfirmButton } from "@/components/admin/confirm-button";
-import { ListToolbar, Pagination, SelectFilter } from "@/components/admin/list-toolbar";
-import { Badge, Card, PageTitle, Table } from "@/components/admin/ui";
+import { ListToolbar, Pagination, SelectFilter, SortableTable } from "@/components/admin/list-toolbar";
+import { Badge, Card, PageTitle } from "@/components/admin/ui";
 import type { Prisma } from "@/generated/prisma/client";
-import { oneOf, pageParams, str } from "@/lib/admin/list-params";
+import { oneOf, pageParams, sortParams, str, type SortDir } from "@/lib/admin/list-params";
 import { deletePoint } from "@/lib/actions/admin/points";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
@@ -16,6 +16,16 @@ const OK_MESSAGES: Record<string, string> = {
   supprime: "Point d'apport supprimé.",
   desactive: "Des apports y sont rattachés : le point est conservé pour l'historique et retiré de la carte.",
 };
+
+const SORTS = {
+  nom: (dir: SortDir) => ({ name: dir }),
+  adresse: (dir: SortDir) => ({ address: dir }),
+  horaires: (dir: SortDir) => ({ openingHours: { sort: dir, nulls: "last" as const } }),
+  materiaux: (dir: SortDir) => ({ acceptedMaterials: { _count: dir } }),
+  apports: (dir: SortDir) => ({ declarations: { _count: dir } }),
+  etat: (dir: SortDir) => ({ active: dir }),
+} satisfies Record<string, (dir: SortDir) => Prisma.CollectionPointOrderByWithRelationInput>;
+type SortKey = keyof typeof SORTS;
 
 export default function PointsAdminPage(props: PageProps<"/admin/points">) {
   return (
@@ -41,11 +51,14 @@ async function Points({ searchParams }: PageProps<"/admin/points">) {
   const q = str(sp, "q");
   const etat = oneOf(sp, "etat", ["actif", "inactif"] as const);
   const ok = str(sp, "ok");
+  const materiau = str(sp, "materiau");
+  const sort = sortParams(sp, Object.keys(SORTS) as SortKey[], { key: "nom", dir: "asc" });
   const { page, skip, take } = pageParams(sp);
   const listSp = { ...sp, ok: undefined };
 
   const where: Prisma.CollectionPointWhereInput = {
     ...(etat && { active: etat === "actif" }),
+    ...(materiau && { acceptedMaterials: { some: { id: materiau } } }),
     ...(q && {
       OR: [
         { name: { contains: q, mode: "insensitive" } },
@@ -54,9 +67,10 @@ async function Points({ searchParams }: PageProps<"/admin/points">) {
       ],
     }),
   };
-  const [total, points] = await Promise.all([
+  const [total, points, materials] = await Promise.all([
     prisma.collectionPoint.count({ where }),
-    prisma.collectionPoint.findMany({ where, orderBy: { name: "asc" }, skip, take, include: { _count: { select: { acceptedMaterials: true, declarations: true } } } }),
+    prisma.collectionPoint.findMany({ where, orderBy: [SORTS[sort.key](sort.dir), { id: "asc" }], skip, take, include: { _count: { select: { acceptedMaterials: true, declarations: true } } } }),
+    prisma.material.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
@@ -68,12 +82,30 @@ async function Points({ searchParams }: PageProps<"/admin/points">) {
         basePath="/admin/points"
         sp={listSp}
         placeholder="Nom, adresse, quartier…"
-        filters={<SelectFilter name="etat" label="État" value={etat} options={[{ value: "actif", label: "Sur la carte" }, { value: "inactif", label: "Masqués" }]} />}
+        filters={
+          <>
+            <SelectFilter name="etat" label="État" value={etat} options={[{ value: "actif", label: "Sur la carte" }, { value: "inactif", label: "Masqués" }]} />
+            <SelectFilter name="materiau" label="Accepte" value={materiau} options={materials.map((m) => ({ value: m.id, label: m.name }))} />
+          </>
+        }
       />
       {points.length === 0 ? (
         <p className="py-6 text-center text-[#8a978c]">Aucun point ne correspond.</p>
       ) : (
-        <Table head={["Nom", "Adresse", "Horaires", "Matériaux", "Apports", "État", "Actions"]}>
+        <SortableTable
+          basePath="/admin/points"
+          sp={listSp}
+          sort={sort}
+          columns={[
+            { label: "Nom", sort: "nom" },
+            { label: "Adresse", sort: "adresse" },
+            { label: "Horaires", sort: "horaires" },
+            { label: "Matériaux", sort: "materiaux" },
+            { label: "Apports", sort: "apports" },
+            { label: "État", sort: "etat" },
+            { label: "Actions", align: "right" },
+          ]}
+        >
           {points.map((p) => (
             <tr key={p.id} className="hover:bg-[#fafcf9]">
               <td><Link href={`/admin/points/${p.id}`} className="font-semibold text-brand-dark hover:text-brand">{p.name}</Link></td>
@@ -95,7 +127,7 @@ async function Points({ searchParams }: PageProps<"/admin/points">) {
               </td>
             </tr>
           ))}
-        </Table>
+        </SortableTable>
       )}
       <Pagination basePath="/admin/points" sp={listSp} page={page} total={total} />
     </>

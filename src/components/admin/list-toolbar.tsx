@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { PAGE_SIZE, type SearchParams } from "@/lib/admin/list-params";
 
@@ -21,11 +21,14 @@ export function ListToolbar({
   advanced?: React.ReactNode;
 }) {
   const q = typeof sp.q === "string" ? sp.q : "";
-  const hasFilters = Object.entries(sp).some(([k, v]) => k !== "page" && v);
-  const advancedOpen = Boolean(advanced) && Object.keys(sp).some((k) => !["q", "page", "statut"].includes(k) && sp[k]);
+  const hasFilters = Object.entries(sp).some(([k, v]) => !["page", "tri", "ordre", "triOrdre"].includes(k) && v);
+  const advancedOpen = Boolean(advanced) && Object.keys(sp).some((k) => !["q", "page", "statut", "tri", "ordre", "triOrdre"].includes(k) && sp[k]);
 
   return (
     <form method="get" action={basePath} className="mb-5 flex flex-col gap-3">
+      {/* Le tri choisi en cliquant sur une colonne est conservé quand on filtre */}
+      {typeof sp.tri === "string" && <input type="hidden" name="tri" value={sp.tri} />}
+      {typeof sp.ordre === "string" && <input type="hidden" name="ordre" value={sp.ordre} />}
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-[220px] flex-1">
           <span className="sr-only">Rechercher</span>
@@ -114,5 +117,85 @@ function PageLink({ href, children, active, disabled, label }: { href: string; c
     <Link href={href} aria-label={label} aria-current={active ? "page" : undefined} className={`${cls} ${active ? "border-brand bg-brand text-white" : "border-[#e6ece3] bg-white hover:border-brand hover:text-brand"}`}>
       {children}
     </Link>
+  );
+}
+
+export type Column<K extends string> = { label: string; sort?: K; align?: "right" };
+
+/**
+ * Tableau triable : chaque en-tête avec `sort` est un lien qui trie la colonne (asc, puis desc).
+ * Le tri est appliqué par la base de données, sur toutes les pages, et conserve les filtres.
+ */
+export function SortableTable<K extends string>({
+  basePath,
+  sp,
+  columns,
+  sort,
+  children,
+}: {
+  basePath: string;
+  sp: SearchParams;
+  columns: Column<K>[];
+  sort: { key: K; dir: "asc" | "desc" };
+  children: React.ReactNode;
+}) {
+  const href = (key: K) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (!["page", "tri", "ordre"].includes(k) && typeof v === "string" && v) q.set(k, v);
+    q.set("tri", key);
+    q.set("ordre", sort.key === key && sort.dir === "asc" ? "desc" : "asc");
+    return `${basePath}?${q}`;
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b-2 border-[#e6ece3] text-brand-dark">
+            {columns.map((c) => {
+              const active = c.sort && sort.key === c.sort;
+              return (
+                <th
+                  key={c.label}
+                  aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
+                  className={`whitespace-nowrap px-2 py-3 font-semibold ${c.align === "right" ? "text-right" : ""}`}
+                >
+                  {c.sort ? (
+                    <Link href={href(c.sort)} scroll={false} className={`inline-flex items-center gap-1 hover:text-brand ${active ? "text-brand" : ""}`}>
+                      {c.label}
+                      {active ? (
+                        sort.dir === "asc" ? <ArrowUp aria-hidden className="h-3.5 w-3.5" /> : <ArrowDown aria-hidden className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUpDown aria-hidden className="h-3.5 w-3.5 opacity-30" />
+                      )}
+                    </Link>
+                  ) : (
+                    c.label
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody className="[&_td]:px-2 [&_td]:py-3 [&_tr]:border-b [&_tr]:border-[#e6ece3]">{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Menu de tri pour les listes en cartes (messages, tarifs) : soumis avec les filtres. */
+export function SortSelectFilter({ sp, options }: { sp: SearchParams; options: { value: string; label: string }[] }) {
+  const current = typeof sp.triOrdre === "string" ? sp.triOrdre : `${typeof sp.tri === "string" ? sp.tri : ""}:${typeof sp.ordre === "string" ? sp.ordre : ""}`;
+  return (
+    <label className="flex flex-col gap-1 text-xs font-semibold text-[#5b6b5e]">
+      <span className="sr-only">Trier par</span>
+      <select name="triOrdre" defaultValue={current} aria-label="Trier par" className={input}>
+        <option value=":">Tri par défaut</option>
+        {options.flatMap((o) => [
+          <option key={`${o.value}:asc`} value={`${o.value}:asc`}>{o.label} ↑</option>,
+          <option key={`${o.value}:desc`} value={`${o.value}:desc`}>{o.label} ↓</option>,
+        ])}
+      </select>
+    </label>
   );
 }

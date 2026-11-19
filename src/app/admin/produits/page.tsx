@@ -2,10 +2,10 @@ import { CircleCheck, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ConfirmButton } from "@/components/admin/confirm-button";
-import { FieldFilter, ListToolbar, Pagination, SelectFilter } from "@/components/admin/list-toolbar";
-import { Badge, Card, PageTitle, Table } from "@/components/admin/ui";
+import { FieldFilter, ListToolbar, Pagination, SelectFilter, SortableTable } from "@/components/admin/list-toolbar";
+import { Badge, Card, PageTitle } from "@/components/admin/ui";
 import type { Prisma } from "@/generated/prisma/client";
-import { intParam, oneOf, pageParams, str } from "@/lib/admin/list-params";
+import { intParam, oneOf, pageParams, sortParams, str, type SortDir } from "@/lib/admin/list-params";
 import { deleteProduct } from "@/lib/actions/admin/products";
 import { formatAriary } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/labels";
@@ -20,6 +20,16 @@ const OK_MESSAGES: Record<string, string> = {
   depublie: "Ce produit a déjà été commandé : il est conservé pour l'historique et retiré de la boutique.",
 };
 const LOW_STOCK = 5;
+
+const SORTS = {
+  nom: (dir: SortDir) => ({ name: dir }),
+  categorie: (dir: SortDir) => ({ category: dir }),
+  prix: (dir: SortDir) => ({ price: dir }),
+  stock: (dir: SortDir) => ({ stock: dir }),
+  boutique: (dir: SortDir) => ({ published: dir }),
+  date: (dir: SortDir) => ({ createdAt: dir }),
+} satisfies Record<string, (dir: SortDir) => Prisma.ProductOrderByWithRelationInput>;
+type SortKey = keyof typeof SORTS;
 
 export default function ProductsAdminPage(props: PageProps<"/admin/produits">) {
   return (
@@ -49,6 +59,7 @@ async function Products({ searchParams }: PageProps<"/admin/produits">) {
   const min = intParam(sp, "min");
   const max = intParam(sp, "max");
   const ok = str(sp, "ok");
+  const sort = sortParams(sp, Object.keys(SORTS) as SortKey[], { key: "date", dir: "desc" });
   const { page, skip, take } = pageParams(sp);
 
   const where: Prisma.ProductWhereInput = {
@@ -61,7 +72,7 @@ async function Products({ searchParams }: PageProps<"/admin/produits">) {
   };
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
-    prisma.product.findMany({ where, orderBy: { createdAt: "desc" }, skip, take, include: { _count: { select: { orderItems: true } } } }),
+    prisma.product.findMany({ where, orderBy: [SORTS[sort.key](sort.dir), { id: "desc" }], skip, take, include: { _count: { select: { orderItems: true } } } }),
   ]);
 
   return (
@@ -90,7 +101,19 @@ async function Products({ searchParams }: PageProps<"/admin/produits">) {
       {products.length === 0 ? (
         <p className="py-6 text-center text-[#8a978c]">Aucun produit ne correspond.</p>
       ) : (
-        <Table head={["Produit", "Catégorie", "Prix", "Stock", "Boutique", "Actions"]}>
+        <SortableTable
+          basePath="/admin/produits"
+          sp={{ ...sp, ok: undefined }}
+          sort={sort}
+          columns={[
+            { label: "Produit", sort: "nom" },
+            { label: "Catégorie", sort: "categorie" },
+            { label: "Prix", sort: "prix" },
+            { label: "Stock", sort: "stock" },
+            { label: "Boutique", sort: "boutique" },
+            { label: "Actions", align: "right" },
+          ]}
+        >
           {products.map((p) => (
             <tr key={p.id} className="hover:bg-[#fafcf9]">
               <td>
@@ -126,7 +149,7 @@ async function Products({ searchParams }: PageProps<"/admin/produits">) {
               </td>
             </tr>
           ))}
-        </Table>
+        </SortableTable>
       )}
       <Pagination basePath="/admin/produits" sp={{ ...sp, ok: undefined }} page={page} total={total} />
     </>

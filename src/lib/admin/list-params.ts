@@ -47,7 +47,17 @@ export function dateRange(sp: SearchParams, from = "du", to = "au") {
   return gte || lte ? { ...(gte && { gte }), ...(lte && { lte }) } : undefined;
 }
 
-/** Nombre de filtres actifs (hors pagination), pour l'affichage. */
-export function activeFilters(sp: SearchParams) {
-  return Object.entries(sp).filter(([k, v]) => k !== "page" && v !== undefined && v !== "").length;
+// ─── Tri par colonne (?tri=…&ordre=asc|desc) ──────────────────────────────────
+
+export type SortDir = "asc" | "desc";
+export type Sort<K extends string> = { key: K; dir: SortDir };
+
+/** Colonne de tri parmi une liste autorisée (jamais un nom de champ arbitraire venant de l'URL). */
+export function sortParams<K extends string>(sp: SearchParams, keys: readonly K[], fallback: Sort<K>): Sort<K> {
+  // Menu de tri des listes en cartes : ?triOrdre=cle:asc ; en-têtes de tableau : ?tri=cle&ordre=asc
+  const [k2, o2] = (str(sp, "triOrdre") ?? "").split(":");
+  const key = keys.find((k) => k === k2) ?? oneOf(sp, "tri", keys);
+  const ordre = (["asc", "desc"] as const).find((o) => o === o2) ?? oneOf(sp, "ordre", ["asc", "desc"] as const);
+  if (!key) return fallback;
+  return { key, dir: ordre ?? "asc" };
 }

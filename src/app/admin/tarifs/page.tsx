@@ -1,11 +1,11 @@
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { Suspense } from "react";
 import { ConfirmButton } from "@/components/admin/confirm-button";
-import { ListToolbar, Pagination, SelectFilter } from "@/components/admin/list-toolbar";
+import { ListToolbar, Pagination, SelectFilter, SortSelectFilter } from "@/components/admin/list-toolbar";
 import { Card, PageTitle } from "@/components/admin/ui";
 import type { Prisma } from "@/generated/prisma/client";
 import type { MaterialCategory } from "@/generated/prisma/enums";
-import { oneOf, pageParams, str } from "@/lib/admin/list-params";
+import { oneOf, pageParams, sortParams, str, type SortDir } from "@/lib/admin/list-params";
 import { deleteMaterial, saveMaterial } from "@/lib/actions/admin/materials";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
@@ -21,6 +21,16 @@ const CATEGORY_LABELS: Record<MaterialCategory, string> = {
   AUTRE: "Autre",
 };
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as MaterialCategory[];
+
+const SORTS = {
+  code: (dir: SortDir) => ({ code: dir }),
+  nom: (dir: SortDir) => ({ name: dir }),
+  categorie: (dir: SortDir) => ({ category: dir }),
+  prix: (dir: SortDir) => ({ pricePerKg: dir }),
+  actif: (dir: SortDir) => ({ active: dir }),
+} satisfies Record<string, (dir: SortDir) => Prisma.MaterialOrderByWithRelationInput>;
+type SortKey = keyof typeof SORTS;
+const SORT_LABELS: Record<SortKey, string> = { code: "Code", nom: "Nom", categorie: "Catégorie", prix: "Prix au kilo", actif: "Actif" };
 const input = "h-9 rounded border border-[#dfe7dc] bg-white px-2 text-sm focus:border-brand focus:outline-none";
 
 export default function PricesPage(props: PageProps<"/admin/tarifs">) {
@@ -42,6 +52,7 @@ async function Prices({ searchParams }: PageProps<"/admin/tarifs">) {
   const etat = oneOf(sp, "etat", ["actif", "inactif"] as const);
   const ok = str(sp, "ok", 300);
   const erreur = str(sp, "erreur", 300);
+  const sort = sortParams(sp, Object.keys(SORTS) as SortKey[], { key: "categorie", dir: "asc" });
   const { page, skip, take } = pageParams(sp);
   const listSp = { ...sp, ok: undefined, erreur: undefined };
 
@@ -52,7 +63,7 @@ async function Prices({ searchParams }: PageProps<"/admin/tarifs">) {
   };
   const [total, materials] = await Promise.all([
     prisma.material.count({ where }),
-    prisma.material.findMany({ where, orderBy: [{ category: "asc" }, { name: "asc" }], skip, take }),
+    prisma.material.findMany({ where, orderBy: [SORTS[sort.key](sort.dir), { name: "asc" }], skip, take }),
   ]);
 
   return (
@@ -69,6 +80,7 @@ async function Prices({ searchParams }: PageProps<"/admin/tarifs">) {
             <>
               <SelectFilter name="categorie" label="Catégorie" value={categorie} options={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))} />
               <SelectFilter name="etat" label="État" value={etat} options={[{ value: "actif", label: "Actifs" }, { value: "inactif", label: "Désactivés" }]} />
+              <SortSelectFilter sp={listSp} options={(Object.keys(SORTS) as SortKey[]).map((k) => ({ value: k, label: SORT_LABELS[k] }))} />
             </>
           }
         />
