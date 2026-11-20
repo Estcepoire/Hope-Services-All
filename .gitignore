@@ -51,3 +51,4 @@ next-env.d.ts
 
 # fichiers locaux (comptes de démo, notes)
 *.local.md
+/.demo/

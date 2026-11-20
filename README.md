@@ -59,6 +59,14 @@ src/
     format.ts          formatage en Ariary
 ```
 
+## Démo publique depuis ce PC
+
+`bash scripts/demo-relancer.sh` ouvre deux tunnels Cloudflare gratuits (site + Keycloak), autorise la
+nouvelle adresse dans Keycloak et démarre le site en mode production sur le port 3100. L'adresse
+(`https://….trycloudflare.com`) s'affiche à la fin et change à chaque relance : relancer après une coupure
+réseau, une mise en veille ou un redémarrage. Ajouter `--build` après une modification du code.
+Comptes de test et mots de passe : `comptes-demo.local.md` (local, ignoré par git).
+
 ## Comptes et rôles (Keycloak)
 
 - Console Keycloak : http://localhost:8080/admin (identifiants de dev dans `docker-compose.yml`)
